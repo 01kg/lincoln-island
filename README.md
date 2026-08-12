@@ -6,7 +6,7 @@
 
 ## 当前状态
 
-第一个 Web 技术纵切地基已经建立：页面会渲染一个带相机和灯光的 Babylon.js 灰盒场景，当前只验证渲染入口与模块边界，尚未实现岛屿地形、完整漫游、2D 地图或章节切换。
+第一个 Web 技术纵切现在包含一块确定性生成的低多边形占位岛屿和基础第一人称步行。当前只验证灰盒空间、玩家边界和模块边界，尚未实现完整林肯岛、2D 地图或章节切换。
 
 最新状态与明确的下一步见 [`docs/NOW.md`](docs/NOW.md)。
 
@@ -46,4 +46,4 @@ docker build --target build --tag lincoln-island:build .
 docker compose down --volumes --remove-orphans
 ```
 
-开发服务运行在非 root 用户下，并启用 init 与健康检查。当前技术基线见 [ADR 0004](docs/decisions/0004-web-first-technical-baseline.md)，Docker 边界见 [ADR 0005](docs/decisions/0005-docker-first-local-development.md)。
+开发服务运行在非 root 用户下，并启用 init 与健康检查。进入页面后点击画布取得鼠标视角，使用 WASD 或方向键行走，按 Esc 释放鼠标。当前技术基线见 [ADR 0004](docs/decisions/0004-web-first-technical-baseline.md)，Docker 边界见 [ADR 0005](docs/decisions/0005-docker-first-local-development.md)。
