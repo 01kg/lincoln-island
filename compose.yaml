@@ -1,0 +1,48 @@
+services:
+  dependencies:
+    build:
+      context: .
+      target: development
+      args:
+        NODE_VERSION: "24.18.0"
+    init: true
+    user: "0:0"
+    volumes:
+      - .:/app:ro
+      - node_modules:/app/node_modules
+    command: ["sh", "-c", "npm ci --ignore-scripts --no-audit --no-fund && chown -R 10001:10001 /app/node_modules"]
+
+  web:
+    build:
+      context: .
+      target: development
+      args:
+        NODE_VERSION: "24.18.0"
+    init: true
+    user: "10001:10001"
+    ports:
+      - "5173:5173"
+    environment:
+      NODE_ENV: development
+    volumes:
+      - .:/app:ro
+      - node_modules:/app/node_modules
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+    depends_on:
+      dependencies:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:5173').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  node_modules:

@@ -1,0 +1,58 @@
+# Web/Node generated directories
+node_modules/
+.pnpm-store/
+dist/
+coverage/
+.vite/
+.cache/
+playwright-report/
+test-results/
+*.tsbuildinfo
+
+# Unity-generated directories (kept for the documented fallback path)
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+[Rr]ecordings/
+
+# IDE and generated project files
+.vs/
+.idea/
+.vscode/
+*.csproj
+*.sln
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Engine/OS noise
+sysinfo.txt
+crashlytics-build.properties
+*.tmp
+*.bak
+*.log
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Local secrets and environment overrides
+.env
+.env.*
+!.env.example
+*.p12
+*.keystore
+
+# Asset Store tools are machine-local
+/Assets/AssetStoreTools*
