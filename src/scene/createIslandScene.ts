@@ -18,9 +18,10 @@ import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Scene } from '@babylonjs/core/scene';
 import {
   createTerrainMeshData,
+  decidePlayerRecovery,
   isLandAt,
   islandTerrainConfig,
-  resolvePlayerBoundaryPosition,
+  playerMovementConfig,
   type Position3,
 } from '../domain/terrain';
 import { keyboardMovementBindings } from '../domain/playerInput';
@@ -30,9 +31,12 @@ import {
   diagnosticPathDistances,
   formatDiagnosticKeys,
   getCardinalDirection,
+  getDiagnosticResetPose,
   getInitialVisibilityCandidate,
   isInitialVisibilityCandidate,
 } from '../domain/diagnostics';
+
+type RecoveryCauseLabel = 'manual-reset' | 'offshore' | 'fallen' | 'none';
 
 export interface SceneDiagnostics {
   readonly position: Position3;
@@ -40,7 +44,9 @@ export interface SceneDiagnostics {
   readonly heading: ReturnType<typeof getCardinalDirection>;
   readonly keys: string;
   readonly pointerLocked: boolean;
+  readonly movementSpeed: number;
   readonly camp: '营地' | '营地外陆地' | '海上';
+  readonly recovery: '无' | '离岸复位' | '掉落复位' | '手动复位';
   readonly distanceFromCamp: number;
   /** Geometric candidates + active/ready status, not a claim about GPU pixels. */
   readonly references: string;
@@ -100,6 +106,7 @@ function createHighlandMarker(scene: Scene): void {
   material.diffuseColor = new Color3(0.86, 0.62, 0.18);
   material.emissiveColor = new Color3(0.18, 0.12, 0.02);
   marker.material = material;
+  marker.checkCollisions = false;
 }
 
 function createFlatMaterial(scene: Scene, name: string, color: readonly [number, number, number]): StandardMaterial {
@@ -207,6 +214,13 @@ function getCampStatus(position: Position3): SceneDiagnostics['camp'] {
   return isLandAt(position[0], position[2]) ? '营地外陆地' : '海上';
 }
 
+function buildRecoveryText(recovery: RecoveryCauseLabel): '无' | '离岸复位' | '掉落复位' | '手动复位' {
+  if (recovery === 'manual-reset') return '手动复位';
+  if (recovery === 'offshore') return '离岸复位';
+  if (recovery === 'fallen') return '掉落复位';
+  return '无';
+}
+
 export function createIslandScene(
   canvas: HTMLCanvasElement,
   onDiagnostics?: (diagnostics: SceneDiagnostics) => void,
@@ -219,65 +233,118 @@ export function createIslandScene(
   const scene = new Scene(engine);
   scene.clearColor = new Color4(0.46, 0.73, 0.93, 1);
   scene.collisionsEnabled = true;
-  scene.gravity = new Vector3(0, -0.16, 0);
+  scene.gravity = new Vector3(0, playerMovementConfig.gravityY, 0);
 
   createSea(scene);
   createTerrainMesh(scene);
   createHighlandMarker(scene);
   const diagnosticCampAssembly = createDiagnosticCamp(scene);
 
-  const spawnPoint = campWorldPosition(diagnosticCamp.spawnOffset, diagnosticCamp.eyeHeight + 0.03);
-  const spawn: Position3 = [spawnPoint.x, spawnPoint.y, spawnPoint.z];
+  const spawnPose = getDiagnosticResetPose(diagnosticCamp);
+  const spawn: Position3 = spawnPose.spawn;
+  const diagnosticTarget: Position3 = spawnPose.target;
+  let lastRecoveryAt = 0;
+  let movementLockUntil = 0;
+  let recoveryShowUntil = 0;
+  let settleUntil = 0;
+  let recoveryCause: RecoveryCauseLabel = 'none';
+
   const camera = new FreeCamera('island-observer', new Vector3(...spawn), scene);
-  const resetToDiagnosticCamp = () => {
-    camera.position.copyFromFloats(...spawn);
+  const activeKeys = new Set<string>();
+  const keyLabels = new Map<string, string>([
+    ['KeyW', 'W'],
+    ['KeyA', 'A'],
+    ['KeyS', 'S'],
+    ['KeyD', 'D'],
+    ['ArrowUp', '↑'],
+    ['ArrowLeft', '←'],
+    ['ArrowDown', '↓'],
+    ['ArrowRight', '→'],
+  ]);
+
+  const clearMomentum = () => {
     camera.cameraDirection.copyFromFloats(0, 0, 0);
-    // Create after all reference meshes so the target is not a stale pre-layout point.
-    camera.setTarget(campWorldPosition(diagnosticMarkers[0].offset, diagnosticCamp.gateTargetHeight));
   };
-  resetToDiagnosticCamp();
+
+  const lockMovement = () => {
+    movementLockUntil = performance.now() + playerMovementConfig.movementLockMs;
+    camera.speed = 0;
+    clearMomentum();
+  };
+
+  const unlockMovement = () => {
+    camera.speed = playerMovementConfig.walkSpeed;
+    recoveryCause = 'none';
+  };
+
+  const beginRecovery = (cause: RecoveryCauseLabel) => {
+    recoveryCause = cause;
+    recoveryShowUntil = performance.now() + 700;
+    settleUntil = performance.now() + playerMovementConfig.movementSettleMs;
+    lockMovement();
+  };
+
+  const updateRecoveryState = (now: number) => {
+    if (now >= movementLockUntil) {
+      if (camera.speed === 0) {
+        unlockMovement();
+      }
+    }
+    camera.applyGravity = now >= settleUntil;
+    if (now < settleUntil) {
+      clearMomentum();
+    }
+    if (recoveryCause !== 'none' && now >= recoveryShowUntil) {
+      recoveryCause = 'none';
+    }
+  };
+
+  const resetToDiagnosticCamp = (clearManualKeys = true) => {
+    camera.position.copyFromFloats(...spawn);
+    const [targetX, targetY, targetZ] = diagnosticTarget;
+    camera.setTarget(new Vector3(targetX, targetY, targetZ));
+    clearMomentum();
+    lastRecoveryAt = -1;
+    beginRecovery('manual-reset');
+    camera.applyGravity = true;
+    if (clearManualKeys) {
+      activeKeys.clear();
+    }
+  };
+
   camera.attachControl(canvas, true);
   canvas.tabIndex = 0;
   camera.keysUp = [...keyboardMovementBindings.forward];
   camera.keysDown = [...keyboardMovementBindings.backward];
   camera.keysLeft = [...keyboardMovementBindings.left];
   camera.keysRight = [...keyboardMovementBindings.right];
-  camera.speed = 0.16;
-  camera.inertia = 0.3;
+  // Babylon FreeCamera speed and inertia are scene-driven movement primitives.
+  // Keep these constants in domain config for deterministic verification.
+  camera.speed = playerMovementConfig.walkSpeed;
+  camera.inertia = playerMovementConfig.inertia;
   camera.angularSensibility = 3500;
   camera.checkCollisions = true;
   camera.applyGravity = true;
   camera.ellipsoid = new Vector3(islandTerrainConfig.cameraRadius, 0.9, islandTerrainConfig.cameraRadius);
-  camera.ellipsoidOffset = new Vector3(0, -0.8, 0);
+  camera.ellipsoidOffset = new Vector3(0, -0.82, 0);
   camera.minZ = 0.1;
   camera.fov = diagnosticCamp.fieldOfViewRadians;
+  // Face marker direction immediately after attach; initial scene orientation remains deterministic.
+  const [targetX, targetY, targetZ] = diagnosticTarget;
+  camera.setTarget(new Vector3(targetX, targetY, targetZ));
+  camera.rotation.y = Math.atan2(diagnosticCamp.forward[0], diagnosticCamp.forward[1]);
 
   const light = new HemisphericLight('island-sun', new Vector3(0.2, 1, 0.15), scene);
   light.intensity = 1.15;
   light.groundColor = new Color3(0.38, 0.48, 0.38);
 
-  let lastSafePosition: Position3 = spawn;
-  let wasUnsafe = false;
-  const activeKeys = new Set<string>();
-  const keyLabels = new Map<string, string>([
-    ['KeyW', 'W'], ['KeyA', 'A'], ['KeyS', 'S'], ['KeyD', 'D'],
-    ['ArrowUp', '↑'], ['ArrowLeft', '←'], ['ArrowDown', '↓'], ['ArrowRight', '→'],
-  ]);
-  const handleKeyDown = (event: KeyboardEvent) => {
-    if (event.code === 'KeyR' && !event.repeat) {
-      resetToDiagnosticCamp();
-      lastSafePosition = spawn;
-      wasUnsafe = false;
-    }
-    if (keyLabels.has(event.code)) activeKeys.add(event.code);
-  };
-  const handleKeyUp = (event: KeyboardEvent) => activeKeys.delete(event.code);
   const getReferenceStatus = () => {
     const meshes = [...diagnosticCampAssembly.markerMeshes, ...diagnosticCampAssembly.pathMeshes];
     const active = meshes.filter((mesh) => mesh.isEnabled() && mesh.isVisible).length;
     const ready = meshes.filter((mesh) => mesh.isReady()).length;
     return `候选 ${diagnosticCampAssembly.candidateCount}/3 · 网格 ${active}/${meshes.length} active · ${ready}/${meshes.length} ready`;
   };
+
   const emitDiagnostics = () => {
     if (!onDiagnostics) return;
     const position: Position3 = [camera.position.x, camera.position.y, camera.position.z];
@@ -290,40 +357,69 @@ export function createIslandScene(
       position,
       yaw,
       heading: getCardinalDirection(yaw),
+      movementSpeed: playerMovementConfig.walkSpeed,
       keys: formatDiagnosticKeys([...activeKeys].map((code) => keyLabels.get(code) ?? code)),
       pointerLocked: document.pointerLockElement === canvas,
       camp: getCampStatus(position),
+      recovery: buildRecoveryText(recoveryCause),
       distanceFromCamp: horizontalDistance,
       references: getReferenceStatus(),
       sceneStatus: '运行中',
     });
   };
-  window.addEventListener('keydown', handleKeyDown);
-  window.addEventListener('keyup', handleKeyUp);
+
   let lastDiagnosticsAt = -Infinity;
   const emitThrottledDiagnostics = () => {
     const now = performance.now();
-    if (now - lastDiagnosticsAt >= 100) {
-      lastDiagnosticsAt = now;
-      emitDiagnostics();
+    if (now - lastDiagnosticsAt < 100) {
+      return;
+    }
+    lastDiagnosticsAt = now;
+    emitDiagnostics();
+  };
+
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (event.code === 'KeyR' && !event.repeat) {
+      resetToDiagnosticCamp();
+      return;
+    }
+    if (keyLabels.has(event.code)) {
+      activeKeys.add(event.code);
     }
   };
+  const handleKeyUp = (event: KeyboardEvent) => {
+    activeKeys.delete(event.code);
+  };
+
   const keepCameraSafe = () => {
+    const now = performance.now();
     const current: Position3 = [camera.position.x, camera.position.y, camera.position.z];
-    const resolved = resolvePlayerBoundaryPosition(current, lastSafePosition);
-    if (resolved !== current) {
-      if (!wasUnsafe) {
-        camera.position.copyFromFloats(...resolved);
-        camera.cameraDirection.copyFromFloats(0, 0, 0);
-        wasUnsafe = true;
-      }
+    updateRecoveryState(now);
+    const isMovementLocked = now < movementLockUntil;
+
+    const decision = decidePlayerRecovery(current, lastRecoveryAt, now, islandTerrainConfig, playerMovementConfig.recoveryCooldownMs);
+    if (decision.shouldRecover) {
+      const recoverTo = spawn;
+      camera.position.copyFromFloats(...recoverTo);
+      const [targetX, targetY, targetZ] = diagnosticTarget;
+      camera.setTarget(new Vector3(targetX, targetY, targetZ));
+      lastRecoveryAt = decision.nextRecoveryAt;
+      beginRecovery(decision.reason ?? 'offshore');
       emitThrottledDiagnostics();
       return;
     }
-    lastSafePosition = current;
-    wasUnsafe = false;
+
+    if (isLandAt(current[0], current[2])) {
+      // keep as runtime-safe state implicitly; explicit snap is avoided to preserve normal
+      // Babylon collision response.
+    }
+
+    if (isMovementLocked) {
+      clearMomentum();
+    }
     emitThrottledDiagnostics();
   };
+
   scene.onBeforeRenderObservable.add(keepCameraSafe);
 
   const enterLookMode = () => {
@@ -332,19 +428,30 @@ export function createIslandScene(
       const request = canvas.requestPointerLock?.();
       if (request instanceof Promise) {
         void request.catch(() => {
-          // Pointer Lock can be denied by browser policy; Babylon still keeps
-          // its press-and-drag fallback for ordinary mouse movement.
+          // Pointer Lock can be denied by browser policy; Babylon keeps
+          // drag fallback for ordinary mouse movement.
         });
       }
     }
   };
   canvas.addEventListener('pointerdown', enterLookMode);
+
+  const handlePointerLockChange = () => {
+    emitDiagnostics();
+  };
+  document.addEventListener('pointerlockchange', handlePointerLockChange);
+
+  window.addEventListener('keydown', handleKeyDown);
+  window.addEventListener('keyup', handleKeyUp);
+
+  resetToDiagnosticCamp();
   emitDiagnostics();
 
   const dispose = () => {
     canvas.removeEventListener('pointerdown', enterLookMode);
     window.removeEventListener('keydown', handleKeyDown);
     window.removeEventListener('keyup', handleKeyUp);
+    document.removeEventListener('pointerlockchange', handlePointerLockChange);
     scene.onBeforeRenderObservable.removeCallback(keepCameraSafe);
     scene.dispose();
     engine.dispose();

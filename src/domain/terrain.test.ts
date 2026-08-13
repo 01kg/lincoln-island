@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   canOccupyPosition,
+  decidePlayerRecovery,
   createTerrainMeshData,
   getSafeSpawnPosition,
   islandTerrainConfig,
+  playerMovementConfig,
   isPlayerPositionSafe,
   isLandAt,
   keepPositionOnLand,
@@ -28,6 +30,42 @@ describe('确定性岛屿地形', () => {
 });
 
 describe('玩家位置边界', () => {
+  it('同一位置的非法越界仅触发一次恢复（遵循冷却窗口）', () => {
+    const safe = getSafeSpawnPosition();
+    const offshore = [islandTerrainConfig.islandRadiusX * 1.2, safe[1], safe[2]] as const;
+    const start = performance.now();
+    const first = decidePlayerRecovery(offshore, 0, start, islandTerrainConfig, 300);
+    expect(first.shouldRecover).toBe(true);
+    const tooSoon = decidePlayerRecovery(offshore, start, start + 80, islandTerrainConfig, 300);
+    expect(tooSoon.shouldRecover).toBe(false);
+  });
+
+  it('掉落恢复和离岸恢复原因可区分', () => {
+    const safe = getSafeSpawnPosition();
+    const now = 0;
+    const fallen = [safe[0], -2, safe[2]] as const;
+    const decision = decidePlayerRecovery(fallen, -1, now, islandTerrainConfig, playerMovementConfig.recoveryCooldownMs);
+    expect(decision.shouldRecover).toBe(true);
+    expect(decision.reason).toBe('fallen');
+
+    const offshore = [islandTerrainConfig.islandRadiusX * 1.1, safe[1], safe[2]] as const;
+    const coastDecision = decidePlayerRecovery(offshore, -1, now, islandTerrainConfig, playerMovementConfig.recoveryCooldownMs);
+    expect(coastDecision.shouldRecover).toBe(true);
+    expect(coastDecision.reason).toBe('offshore');
+  });
+
+  it('离岸后在冷却期内仅恢复一次，冷却后可再次恢复', () => {
+    const safe = getSafeSpawnPosition();
+    const offshore = [islandTerrainConfig.islandRadiusX * 1.2, safe[1], safe[2]] as const;
+    const start = 1_000;
+    const first = decidePlayerRecovery(offshore, 0, start, islandTerrainConfig, playerMovementConfig.recoveryCooldownMs);
+    expect(first.shouldRecover).toBe(true);
+    const immediate = decidePlayerRecovery(offshore, start, start + 200, islandTerrainConfig, playerMovementConfig.recoveryCooldownMs);
+    expect(immediate.shouldRecover).toBe(false);
+    const afterCooldown = decidePlayerRecovery(offshore, start, start + 600, islandTerrainConfig, playerMovementConfig.recoveryCooldownMs);
+    expect(afterCooldown.shouldRecover).toBe(true);
+  });
+
   it('出生点在陆地上并保持眼睛高度', () => {
     const spawn = getSafeSpawnPosition();
     expect(isLandAt(spawn[0], spawn[2])).toBe(true);

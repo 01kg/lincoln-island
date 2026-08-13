@@ -36,6 +36,25 @@ export interface TerrainMeshData {
   };
 }
 
+export interface PlayerMovementConfig {
+  /**
+   * Movement tuning is intentionally in domain config so frame tests can assert
+   * explicit, versioned constants used by scene controls.
+   */
+  readonly walkSpeed: number;
+  readonly gravityY: number;
+  readonly inertia: number;
+  readonly movementSettleMs: number;
+  readonly recoveryCooldownMs: number;
+  readonly movementLockMs: number;
+}
+
+export interface PlayerRecoveryDecision {
+  readonly shouldRecover: boolean;
+  readonly reason: 'offshore' | 'fallen' | null;
+  readonly nextRecoveryAt: number;
+}
+
 export const islandTerrainConfig: TerrainConfig = {
   worldUnitMetres: 1,
   compressionNote: 'prototype-compressed',
@@ -50,6 +69,20 @@ export const islandTerrainConfig: TerrainConfig = {
   eyeHeight: 1.7,
   cameraRadius: 0.35,
   minCameraHeight: 0.5,
+};
+
+export const playerMovementConfig: PlayerMovementConfig = {
+  /**
+   * Camera speed is scene-driven, approximately world unit per frame delta.
+   * Current value is a child-friendly baseline for the compressed world.
+   */
+  walkSpeed: 3.2,
+  gravityY: -0.18,
+  inertia: 0.12,
+  // Brief settle avoids immediate carry-over from key/recovery transitions.
+  movementSettleMs: 220,
+  recoveryCooldownMs: 420,
+  movementLockMs: 220,
 };
 
 function wave(value: number, seed: number): number {
@@ -149,10 +182,7 @@ export function keepPositionOnLand(
   return [desired[0], sampleTerrainHeight(desired[0], desired[2], config) + config.eyeHeight, desired[2]];
 }
 
-export function isPlayerPositionSafe(
-  position: Position3,
-  config: TerrainConfig = islandTerrainConfig,
-): boolean {
+export function isPlayerPositionSafe(position: Position3, config: TerrainConfig = islandTerrainConfig): boolean {
   // Babylon owns ordinary gravity and collision against the discrete terrain
   // mesh. Do not compare with the continuous height sampler here: their
   // surfaces are not guaranteed to match between grid vertices/triangles.
@@ -160,9 +190,44 @@ export function isPlayerPositionSafe(
 }
 
 /**
+ * Decide whether to trigger one-shot disaster recovery.
+ * This does not override gravity/collision behavior each frame; it only decides
+ * the moments where a recovery should happen for clearly invalid position states.
+ */
+export function decidePlayerRecovery(
+  position: Position3,
+  lastRecoveryAt: number,
+  now: number,
+  config: TerrainConfig = islandTerrainConfig,
+  recoveryCooldownMs: number = playerMovementConfig.recoveryCooldownMs,
+): PlayerRecoveryDecision {
+  if (isPlayerPositionSafe(position, config)) {
+    return {
+      shouldRecover: false,
+      reason: null,
+      nextRecoveryAt: lastRecoveryAt,
+    };
+  }
+
+  if (lastRecoveryAt > 0 && now - lastRecoveryAt < recoveryCooldownMs) {
+    return {
+      shouldRecover: false,
+      reason: null,
+      nextRecoveryAt: lastRecoveryAt,
+    };
+  }
+
+  const reason = position[1] < config.minCameraHeight ? 'fallen' : 'offshore';
+  return {
+    shouldRecover: true,
+    reason,
+    nextRecoveryAt: now,
+  };
+}
+
+/**
  * Babylon handles normal camera movement, gravity and mesh collisions. This
- * pure boundary rule only restores the last known safe position after a
- * camera clearly leaves the playable land/height envelope.
+ * pure boundary rule only returns the last-known safe position on recovery.
  */
 export function resolvePlayerBoundaryPosition(
   position: Position3,

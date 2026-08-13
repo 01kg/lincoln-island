@@ -1,4 +1,8 @@
 export type DiagnosticPosition = readonly [x: number, y: number, z: number];
+export interface DiagnosticResetPose {
+  readonly spawn: DiagnosticPosition;
+  readonly target: DiagnosticPosition;
+}
 export type DiagnosticShape = 'gate' | 'column' | 'beacon';
 export type CardinalDirection = 'N' | 'E' | 'S' | 'W';
 
@@ -50,6 +54,21 @@ export const diagnosticMarkers: readonly DiagnosticMarkerDefinition[] = [
 
 /** Distance from the camera spawn along forward; first tile clears the near plane. */
 export const diagnosticPathDistances: readonly number[] = [1.8, 3.1, 4.5, 5.9, 7.2];
+
+export function getDiagnosticResetPose(camp: DiagnosticCampDefinition = diagnosticCamp): DiagnosticResetPose {
+  const spawn: DiagnosticPosition = [
+    camp.origin[0] + camp.spawnOffset[0],
+    camp.origin[1] + camp.platformHeight / 2 + camp.eyeHeight,
+    camp.origin[2] + camp.spawnOffset[1],
+  ];
+  const target: DiagnosticPosition = [
+    camp.origin[0] + camp.forward[0],
+    camp.origin[1] + camp.gateTargetHeight,
+    camp.origin[2] + camp.forward[1],
+  ];
+
+  return { spawn, target };
+}
 
 export interface VisibilityCandidate {
   readonly id: string;
