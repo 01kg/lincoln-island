@@ -4,6 +4,7 @@ node_modules/
 dist/
 coverage/
 .vite/
+.vite-cache/
 .cache/
 playwright-report/
 test-results/

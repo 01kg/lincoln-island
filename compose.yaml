@@ -13,6 +13,8 @@ services:
     environment:
       NODE_ENV: development
       PATH: /app/node_modules/.bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+      VITE_CACHE_DIR: /app/.vite-cache
+      VITE_OUT_DIR: /tmp/lincoln-island-dist
     volumes:
       - .:/app/source:ro
     command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
@@ -21,8 +23,8 @@ services:
         [
           "CMD",
           "node",
-          "-e",
-          "fetch('http://127.0.0.1:5173').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"
+          "/app/source/scripts/dev-server-smoke.mjs",
+          "http://127.0.0.1:5173"
         ]
       interval: 10s
       timeout: 3s

@@ -10,7 +10,7 @@ WORKDIR /app
 
 RUN groupadd --gid 10001 app \
   && useradd --uid 10001 --gid app --create-home --shell /usr/sbin/nologin app \
-  && mkdir -p /app/node_modules /app/source \
+  && mkdir -p /app/node_modules /app/source /app/.vite-cache \
   && chown -R app:app /app
 
 COPY package.json package-lock.json* ./

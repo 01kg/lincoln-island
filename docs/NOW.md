@@ -34,7 +34,7 @@
 
 ## 当前没有
 
-- 尚未完成修复后 WASD 的真实浏览器复验、目标浏览器矩阵和性能预算。
+- 页面空白回归已修复；尚未完成修复后 WASD 的真实浏览器复验、目标浏览器矩阵和性能预算。
 - 完整林肯岛、章节状态、2D 地图和正式地标资产。
 - 经版本核对的第一部分第 18 章地点与路线数据。
 - 有授权、可随项目分发的地图底图或小说译文。
@@ -78,6 +78,9 @@
 - 2026-08-13：Babylon 模块改为子路径导入并懒加载场景：上一节点主 chunk 约 5.82 MB（gzip 1.30 MB），当前入口 chunk 约 188.50 kB（gzip 59.97 kB），场景懒加载 chunk 约 1.22 MB（gzip 297.26 kB）。Vite 仍提示场景 chunk 超过 500 kB，后续需继续评估。
 - 2026-08-13：首次普通浏览器人工验收确认 WebGL 渲染和鼠标视角通过，但 WASD 无移动反应；根因为 FreeCamera 未显式登记键盘映射。本节点登记 W/↑、S/↓、A/←、D/→，点击进入视角时让 canvas 获取焦点；修复后的 WASD 移动待用户在普通浏览器复验。
 - 2026-08-13：Codex 内置浏览器无法完成 Pointer Lock 互动，记录为工具验收限制；当前人工验收入口是普通浏览器。用户截图仅作本次验收证据，不复制进仓库。
+- 2026-08-13：第 2.3 挂载修复后发现页面空白：Vite 仍尝试在只读 `/app/source/node_modules/.vite` 写优化缓存，且仅检查根 HTML 造成假健康。将 `cacheDir` 移至容器可写 `/app/.vite-cache`（宿主机默认 `.vite-cache`），并让健康检查/`smoke:dev` 请求根 HTML、`/src/main.tsx` 和一个预构建依赖；本节点冷启动验证页面模块链路。
+- 2026-08-13：只读源码挂载下完整 `tsc -b` 还会尝试写 `/app/source/node_modules/.tmp`；已将增量构建信息移至 `/tmp`，并让 Vite 配置在无 Node 类型依赖时安全读取 `VITE_CACHE_DIR`。页面模块 smoke、测试、构建和审计均需在此边界下通过。
+- 2026-08-13：同一只读挂载还会使 production build 默认写 `/app/source/dist` 失败；已将 Compose 验证的 `VITE_OUT_DIR` 指向 `/tmp/lincoln-island-dist`，默认镜像/宿主构建仍输出 `dist`。
 - 2026-08-13：诊断 Windows Docker Desktop 下 `. : /app:ro` 与 `/app/node_modules` 命名卷的嵌套挂载冲突；最终改为源码 `/app/source:ro` 与镜像内依赖层，移除不必要的初始化服务和共享卷。两轮冷启动 Compose 均达到 `healthy` 且容器内 HTTP 返回 200；宿主项目目录无 `node_modules`/`dist` 产物。
 
 ## 给下一位协作者
