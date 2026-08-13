@@ -34,7 +34,7 @@
 
 ## 当前没有
 
-- 页面空白回归已修复；尚未完成修复后 WASD 的真实浏览器复验、目标浏览器矩阵和性能预算。
+- 页面空白回归已修复；尚未完成本次相机冻结修复后的 WASD/鼠标真实浏览器复验、目标浏览器矩阵和性能预算。
 - 完整林肯岛、章节状态、2D 地图和正式地标资产。
 - 经版本核对的第一部分第 18 章地点与路线数据。
 - 有授权、可随项目分发的地图底图或小说译文。
@@ -82,6 +82,7 @@
 - 2026-08-13：只读源码挂载下完整 `tsc -b` 还会尝试写 `/app/source/node_modules/.tmp`；已将增量构建信息移至 `/tmp`，并让 Vite 配置在无 Node 类型依赖时安全读取 `VITE_CACHE_DIR`。页面模块 smoke、测试、构建和审计均需在此边界下通过。
 - 2026-08-13：同一只读挂载还会使 production build 默认写 `/app/source/dist` 失败；已将 Compose 验证的 `VITE_OUT_DIR` 指向 `/tmp/lincoln-island-dist`，默认镜像/宿主构建仍输出 `dist`。
 - 2026-08-13：用户复验反馈点击后鼠标视角与 WASD 均无反应；检查发现视角请求原先绑定在 `click`（按下/抬起之后），Pointer Lock 被拒绝或延迟时容易错过直接用户手势。已改为 `pointerdown` 时聚焦 canvas 并请求锁定，拒绝时保留 Babylon 按住拖动回退；普通浏览器仍需用户复验，Codex 内置浏览器的 Pointer Lock 限制不作为产品结论。
+- 2026-08-13：用户进一步复验确认进入 Pointer Lock 后鼠标正常，但一按 WASD/方向键画面冻结。根因为自定义安全守卫用连续 `sampleTerrainHeight + eyeHeight` 审判离散 Babylon 三角网格，按键移动后持续判定 unsafe 并回滚相机。已移除局部高度差判定：正常陆地高度、重力和碰撞完全交给 Babylon；自定义规则仅检查海岸外水平越界或低于全局灾难阈值，并在 safe→unsafe 转换时恢复一次、保留 rotation、清空待处理位移。修复后的普通浏览器移动与视角仍待用户复验。
 - 2026-08-13：诊断 Windows Docker Desktop 下 `. : /app:ro` 与 `/app/node_modules` 命名卷的嵌套挂载冲突；最终改为源码 `/app/source:ro` 与镜像内依赖层，移除不必要的初始化服务和共享卷。两轮冷启动 Compose 均达到 `healthy` 且容器内 HTTP 返回 200；宿主项目目录无 `node_modules`/`dist` 产物。
 
 ## 给下一位协作者

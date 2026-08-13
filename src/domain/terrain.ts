@@ -15,8 +15,7 @@ export interface TerrainConfig {
   readonly maxStepHeight: number;
   readonly eyeHeight: number;
   readonly cameraRadius: number;
-  /** Recovery guard only; Babylon remains responsible for ordinary gravity. */
-  readonly maxCameraTerrainGap: number;
+  /** Global disaster threshold only; Babylon owns ordinary vertical motion. */
   readonly minCameraHeight: number;
 }
 
@@ -50,7 +49,6 @@ export const islandTerrainConfig: TerrainConfig = {
   maxStepHeight: 0.8,
   eyeHeight: 1.7,
   cameraRadius: 0.35,
-  maxCameraTerrainGap: 2.5,
   minCameraHeight: 0.5,
 };
 
@@ -155,11 +153,10 @@ export function isPlayerPositionSafe(
   position: Position3,
   config: TerrainConfig = islandTerrainConfig,
 ): boolean {
-  if (!isLandAt(position[0], position[2], config) || position[1] < config.minCameraHeight) {
-    return false;
-  }
-  const expectedEyeHeight = sampleTerrainHeight(position[0], position[2], config) + config.eyeHeight;
-  return Math.abs(position[1] - expectedEyeHeight) <= config.maxCameraTerrainGap;
+  // Babylon owns ordinary gravity and collision against the discrete terrain
+  // mesh. Do not compare with the continuous height sampler here: their
+  // surfaces are not guaranteed to match between grid vertices/triangles.
+  return isLandAt(position[0], position[2], config) && position[1] >= config.minCameraHeight;
 }
 
 /**

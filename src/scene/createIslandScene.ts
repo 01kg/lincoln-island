@@ -104,14 +104,22 @@ export function createIslandScene(canvas: HTMLCanvasElement): BabylonSceneHandle
   createHighlandMarker(scene);
 
   let lastSafePosition: Position3 = spawn;
+  let wasUnsafe = false;
   const keepCameraSafe = () => {
     const current: Position3 = [camera.position.x, camera.position.y, camera.position.z];
     const resolved = resolvePlayerBoundaryPosition(current, lastSafePosition);
     if (resolved !== current) {
-      camera.position = new Vector3(...resolved);
+      if (!wasUnsafe) {
+        // Recover once on the safe -> unsafe transition. Keep rotation and
+        // clear only pending translation so input can continue immediately.
+        camera.position = new Vector3(...resolved);
+        camera.cameraDirection.copyFromFloats(0, 0, 0);
+        wasUnsafe = true;
+      }
       return;
     }
     lastSafePosition = current;
+    wasUnsafe = false;
   };
   scene.onBeforeRenderObservable.add(keepCameraSafe);
 

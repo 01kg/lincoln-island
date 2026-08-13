@@ -46,11 +46,19 @@ describe('玩家位置边界', () => {
     expect(resolved[1]).toBeCloseTo(sampleTerrainHeight(resolved[0], resolved[2]) + islandTerrainConfig.eyeHeight);
   });
 
-  it('只在明显脱离水平或垂直安全范围时恢复上一个安全位置', () => {
+  it('不因连续高度差拒绝陆地位置，只在海中或全局跌落时恢复', () => {
     const safe = getSafeSpawnPosition();
     const nearby = [safe[0] + 1, safe[1], safe[2]] as const;
     expect(isPlayerPositionSafe(nearby)).toBe(true);
     expect(resolvePlayerBoundaryPosition(nearby, safe)).toEqual(nearby);
+
+    const high = [safe[0], safe[1] + 20, safe[2]] as const;
+    expect(isPlayerPositionSafe(high)).toBe(true);
+    expect(resolvePlayerBoundaryPosition(high, safe)).toEqual(high);
+
+    const sea = [islandTerrainConfig.islandRadiusX * 1.2, high[1], high[2]] as const;
+    expect(isPlayerPositionSafe(sea)).toBe(false);
+    expect(resolvePlayerBoundaryPosition(sea, safe)).toEqual(safe);
 
     const fallen = [safe[0], -1, safe[2]] as const;
     expect(isPlayerPositionSafe(fallen)).toBe(false);
