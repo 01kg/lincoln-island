@@ -10,7 +10,7 @@ WORKDIR /app
 
 RUN groupadd --gid 10001 app \
   && useradd --uid 10001 --gid app --create-home --shell /usr/sbin/nologin app \
-  && mkdir -p /app/node_modules \
+  && mkdir -p /app/node_modules /app/source \
   && chown -R app:app /app
 
 COPY package.json package-lock.json* ./
@@ -20,7 +20,7 @@ USER app
 RUN npm ci --ignore-scripts --no-audit --no-fund
 
 FROM dependencies AS development
-COPY --chown=app:app . .
+COPY --chown=app:app . /app/source
 EXPOSE 5173
 CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
 

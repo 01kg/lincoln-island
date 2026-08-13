@@ -30,14 +30,20 @@
 
 ## 开发（Docker 优先）
 
-前提：安装并启动 Docker Desktop。默认不要求宿主机安装 Node/npm；依赖安装、测试和构建都在 Node 24.18.0 容器内完成，依赖锁定在 `package-lock.json` 中，`node_modules` 使用 Docker 命名卷。
+前提：安装并启动 Docker Desktop。默认不要求宿主机安装 Node/npm；依赖安装、测试和构建都在 Node 24.18.0 容器内完成，依赖锁定在 `package-lock.json` 中。Dockerfile 的依赖层执行 `npm ci`，`node_modules` 保留在镜像层；Compose 只读挂载源码到容器 `/app/source`，因此不会在宿主项目目录创建依赖目录。
 
 ```powershell
 # 启动开发服务器（http://localhost:5173）
-docker compose up --build
+docker compose up --build -d
+
+# 查看服务日志（需要时）
+docker compose logs -f web
 
 # 在一次性容器中运行测试
 docker compose run --rm web npm test
+
+# 审计依赖
+docker compose run --rm web npm audit
 
 # 构建 production 静态文件
 docker build --target build --tag lincoln-island:build .
@@ -46,4 +52,4 @@ docker build --target build --tag lincoln-island:build .
 docker compose down --volumes --remove-orphans
 ```
 
-开发服务运行在非 root 用户下，并启用 init 与健康检查。进入页面后点击画布取得鼠标视角，使用 WASD 或方向键行走，按 Esc 释放鼠标。当前技术基线见 [ADR 0004](docs/decisions/0004-web-first-technical-baseline.md)，Docker 边界见 [ADR 0005](docs/decisions/0005-docker-first-local-development.md)。
+开发服务运行在非 root 用户下，并启用 init 与健康检查。依赖安装只在镜像依赖层执行，避免初始化服务与 Web 服务竞争同一命名卷；Web 服务从只读源码挂载运行，宿主机编辑仍可触发热更新。进入页面后点击画布取得鼠标视角，使用 WASD 或方向键行走，按 Esc 释放鼠标。当前技术基线见 [ADR 0004](docs/decisions/0004-web-first-technical-baseline.md)，Docker 边界见 [ADR 0005](docs/decisions/0005-docker-first-local-development.md)。

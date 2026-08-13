@@ -30,6 +30,7 @@
 - 增加 Dockerfile、Compose、`.dockerignore` 和 npm `package-lock.json`；Node 基线固定为 24.18.0，开发服务使用非 root 用户、init、健康检查和命名卷。
 - 建立固定种子岛屿灰盒、海岸/高地、第一人称步行、重力碰撞和水平边界恢复；地形与玩家边界规则位于纯 TypeScript domain 层并有测试。
 - 通过 Babylon 子路径导入和场景动态懒加载，将入口 chunk 从约 5.82 MB 降至约 188.50 kB（gzip 约 59.97 kB）；场景 chunk 约 1.22 MB（gzip 约 297.26 kB）。
+- 修复 Windows Docker Desktop 下 Compose 的开发挂载边界：源码只读挂载到容器 `/app/source`，依赖由 Dockerfile 锁文件层执行 `npm ci` 并保留在镜像内；移除不必要的依赖初始化服务和共享卷，不再嵌套挂载到只读源码路径。
 
 ## 当前没有
 
@@ -77,6 +78,7 @@
 - 2026-08-13：Babylon 模块改为子路径导入并懒加载场景：上一节点主 chunk 约 5.82 MB（gzip 1.30 MB），当前入口 chunk 约 188.50 kB（gzip 59.97 kB），场景懒加载 chunk 约 1.22 MB（gzip 297.26 kB）。Vite 仍提示场景 chunk 超过 500 kB，后续需继续评估。
 - 2026-08-13：首次普通浏览器人工验收确认 WebGL 渲染和鼠标视角通过，但 WASD 无移动反应；根因为 FreeCamera 未显式登记键盘映射。本节点登记 W/↑、S/↓、A/←、D/→，点击进入视角时让 canvas 获取焦点；修复后的 WASD 移动待用户在普通浏览器复验。
 - 2026-08-13：Codex 内置浏览器无法完成 Pointer Lock 互动，记录为工具验收限制；当前人工验收入口是普通浏览器。用户截图仅作本次验收证据，不复制进仓库。
+- 2026-08-13：诊断 Windows Docker Desktop 下 `. : /app:ro` 与 `/app/node_modules` 命名卷的嵌套挂载冲突；最终改为源码 `/app/source:ro` 与镜像内依赖层，移除不必要的初始化服务和共享卷。两轮冷启动 Compose 均达到 `healthy` 且容器内 HTTP 返回 200；宿主项目目录无 `node_modules`/`dist` 产物。
 
 ## 给下一位协作者
 

@@ -1,17 +1,4 @@
 services:
-  dependencies:
-    build:
-      context: .
-      target: development
-      args:
-        NODE_VERSION: "24.18.0"
-    init: true
-    user: "0:0"
-    volumes:
-      - .:/app:ro
-      - node_modules:/app/node_modules
-    command: ["sh", "-c", "npm ci --ignore-scripts --no-audit --no-fund && chown -R 10001:10001 /app/node_modules"]
-
   web:
     build:
       context: .
@@ -20,17 +7,15 @@ services:
         NODE_VERSION: "24.18.0"
     init: true
     user: "10001:10001"
+    working_dir: /app/source
     ports:
       - "5173:5173"
     environment:
       NODE_ENV: development
+      PATH: /app/node_modules/.bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
     volumes:
-      - .:/app:ro
-      - node_modules:/app/node_modules
+      - .:/app/source:ro
     command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
-    depends_on:
-      dependencies:
-        condition: service_completed_successfully
     healthcheck:
       test:
         [
@@ -43,6 +28,3 @@ services:
       timeout: 3s
       retries: 5
       start_period: 10s
-
-volumes:
-  node_modules:

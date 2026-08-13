@@ -14,7 +14,8 @@
 - **3D 交换格式：** GLB/glTF 2.0。
 - **验证：** 纯逻辑单元测试和浏览器端到端测试。
 - **离线资产工具：** Blender 及 Python；混元 3D 通过可替换的离线适配器接入。
-- **本地开发入口：** Docker Desktop、明确版本的 Node 24.18.0 镜像、npm `package-lock.json` 和 Docker 命名卷；开发进程以非 root 用户运行。
+- **本地开发入口：** Docker Desktop、明确版本的 Node 24.18.0 镜像、npm `package-lock.json` 和镜像内依赖层；开发进程以非 root 用户运行。
+- **开发挂载边界：** Compose 将宿主源码只读挂载到容器 `/app/source`；Dockerfile 的依赖层依据锁文件执行 `npm ci` 并保留 `/app/node_modules`，不再使用初始化服务或共享依赖卷，避免只读源码挂载下的嵌套挂载点与卷竞争。
 - **当前灰盒实现：** `src/domain/terrain.ts` 以固定种子生成非矩形岛形、海岸和高地；Babylon.js 只负责将网格、海面、灯光和第一人称相机装配到场景。
 - **原型空间约定：** 假设 1 world unit ≈ 1 m；当前岛屿尺寸与形状是为体验压缩的原型假设，不是小说地理事实。
 - **首屏边界：** React 首屏只加载 UI；Babylon 场景通过动态 import 懒加载，入口与场景 chunk 分开，避免把完整 Babylon 模块放入 UI 首屏。
