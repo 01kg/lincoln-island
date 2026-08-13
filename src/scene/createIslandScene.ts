@@ -14,6 +14,7 @@ import {
   resolvePlayerBoundaryPosition,
   type Position3,
 } from '../domain/terrain';
+import { keyboardMovementBindings } from '../domain/playerInput';
 
 export interface BabylonSceneHandle {
   engine: Engine;
@@ -75,6 +76,11 @@ export function createIslandScene(canvas: HTMLCanvasElement): BabylonSceneHandle
   const spawn = getSafeSpawnPosition();
   const camera = new FreeCamera('island-observer', new Vector3(...spawn), scene);
   camera.attachControl(canvas, true);
+  canvas.tabIndex = 0;
+  camera.keysUp = [...keyboardMovementBindings.forward];
+  camera.keysDown = [...keyboardMovementBindings.backward];
+  camera.keysLeft = [...keyboardMovementBindings.left];
+  camera.keysRight = [...keyboardMovementBindings.right];
   camera.speed = 0.16;
   camera.inertia = 0.3;
   camera.angularSensibility = 3500;
@@ -110,6 +116,7 @@ export function createIslandScene(canvas: HTMLCanvasElement): BabylonSceneHandle
   scene.onBeforeRenderObservable.add(keepCameraSafe);
 
   const enterLookMode = () => {
+    canvas.focus({ preventScroll: true });
     if (document.pointerLockElement !== canvas) {
       void canvas.requestPointerLock?.();
     }
