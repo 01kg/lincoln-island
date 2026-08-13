@@ -81,6 +81,7 @@
 - 2026-08-13：第 2.3 挂载修复后发现页面空白：Vite 仍尝试在只读 `/app/source/node_modules/.vite` 写优化缓存，且仅检查根 HTML 造成假健康。将 `cacheDir` 移至容器可写 `/app/.vite-cache`（宿主机默认 `.vite-cache`），并让健康检查/`smoke:dev` 请求根 HTML、`/src/main.tsx` 和一个预构建依赖；本节点冷启动验证页面模块链路。
 - 2026-08-13：只读源码挂载下完整 `tsc -b` 还会尝试写 `/app/source/node_modules/.tmp`；已将增量构建信息移至 `/tmp`，并让 Vite 配置在无 Node 类型依赖时安全读取 `VITE_CACHE_DIR`。页面模块 smoke、测试、构建和审计均需在此边界下通过。
 - 2026-08-13：同一只读挂载还会使 production build 默认写 `/app/source/dist` 失败；已将 Compose 验证的 `VITE_OUT_DIR` 指向 `/tmp/lincoln-island-dist`，默认镜像/宿主构建仍输出 `dist`。
+- 2026-08-13：用户复验反馈点击后鼠标视角与 WASD 均无反应；检查发现视角请求原先绑定在 `click`（按下/抬起之后），Pointer Lock 被拒绝或延迟时容易错过直接用户手势。已改为 `pointerdown` 时聚焦 canvas 并请求锁定，拒绝时保留 Babylon 按住拖动回退；普通浏览器仍需用户复验，Codex 内置浏览器的 Pointer Lock 限制不作为产品结论。
 - 2026-08-13：诊断 Windows Docker Desktop 下 `. : /app:ro` 与 `/app/node_modules` 命名卷的嵌套挂载冲突；最终改为源码 `/app/source:ro` 与镜像内依赖层，移除不必要的初始化服务和共享卷。两轮冷启动 Compose 均达到 `healthy` 且容器内 HTTP 返回 200；宿主项目目录无 `node_modules`/`dist` 产物。
 
 ## 给下一位协作者

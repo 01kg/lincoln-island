@@ -118,13 +118,20 @@ export function createIslandScene(canvas: HTMLCanvasElement): BabylonSceneHandle
   const enterLookMode = () => {
     canvas.focus({ preventScroll: true });
     if (document.pointerLockElement !== canvas) {
-      void canvas.requestPointerLock?.();
+      const request = canvas.requestPointerLock?.();
+      if (request instanceof Promise) {
+        void request.catch(() => {
+          // Pointer Lock can be denied by browser policy; Babylon still keeps
+          // its press-and-drag fallback for ordinary mouse movement.
+        });
+      }
     }
   };
-  canvas.addEventListener('click', enterLookMode);
+  // Request from pointerdown while the browser still has a direct user gesture.
+  canvas.addEventListener('pointerdown', enterLookMode);
 
   const dispose = () => {
-    canvas.removeEventListener('click', enterLookMode);
+    canvas.removeEventListener('pointerdown', enterLookMode);
     scene.onBeforeRenderObservable.removeCallback(keepCameraSafe);
     scene.dispose();
     engine.dispose();
