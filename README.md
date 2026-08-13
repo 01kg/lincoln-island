@@ -37,7 +37,7 @@
 docker compose up --build -d
 
 # 为一次人工复验指定可见的开发版本标识（可选）
-$env:LINCOLN_BUILD_ID = 'dev-2.7-visibility'
+$env:LINCOLN_BUILD_ID = 'dev-2.8-visible-camp'
 docker compose up --build -d
 
 # 查看服务日志（需要时）
@@ -59,4 +59,4 @@ docker build --target build --tag lincoln-island:build .
 docker compose down --volumes --remove-orphans
 ```
 
-开发服务运行在非 root 用户下，并启用 init 与模块级健康检查。依赖安装只在镜像依赖层执行，避免初始化服务与 Web 服务竞争同一命名卷；Web 服务从只读源码挂载运行，宿主机编辑仍可触发热更新。Vite 优化缓存位于容器可写的 `/app/.vite-cache`，production 输出在 Compose 中位于 `/tmp/lincoln-island-dist`，不会写入只读源码树或宿主机；宿主机直接运行时默认分别使用项目内被忽略的 `.vite-cache` 和 `dist`。开发 HTML 与模块会返回 `Cache-Control: no-store`，右上角“技术诊断”会显示由 Vite 注入的版本标识；默认 Compose 值为 `dev-2.7-visibility`。人工复验请只打开 `http://localhost:5173/?v=dev-2.7-visibility` 并报告该版本行；进入页面后点击画布取得鼠标视角，使用 WASD 或方向键行走，按 Esc 释放鼠标。当前技术基线见 [ADR 0004](docs/decisions/0004-web-first-technical-baseline.md)，Docker 边界见 [ADR 0005](docs/decisions/0005-docker-first-local-development.md)。
+开发服务运行在非 root 用户下，并启用 init 与模块级健康检查。依赖安装只在镜像依赖层执行，避免初始化服务与 Web 服务竞争同一命名卷；Web 服务从只读源码挂载运行，宿主机编辑仍可触发热更新。Vite 优化缓存位于容器可写的 `/app/.vite-cache`，production 输出在 Compose 中位于 `/tmp/lincoln-island-dist`，不会写入只读源码树或宿主机；宿主机直接运行时默认分别使用项目内被忽略的 `.vite-cache` 和 `dist`。开发 HTML 与模块会返回 `Cache-Control: no-store`，右上角“技术诊断”会显示由 Vite 注入的版本标识；默认 Compose 值为 `dev-2.8-visible-camp`。人工复验请只打开 `http://localhost:5173/?v=dev-2.8-visible-camp` 并报告该版本行；初始画面应出现白门、分列两侧的红柱和黄标，以及白色路径。点击画布取得鼠标视角，使用 WASD 或方向键行走，按 R 返回营地并重新对准白门，按 Esc 释放鼠标。当前技术基线见 [ADR 0004](docs/decisions/0004-web-first-technical-baseline.md)，Docker 边界见 [ADR 0005](docs/decisions/0005-docker-first-local-development.md)。

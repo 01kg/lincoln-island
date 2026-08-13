@@ -104,6 +104,18 @@ body {
   font-weight: 700;
 }
 
+.reticle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  color: rgba(255, 255, 255, 0.92);
+  font: 1.5rem/1 ui-monospace, monospace;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
 .eyebrow {
   color: #f0b35a;
   font-size: 0.72rem;

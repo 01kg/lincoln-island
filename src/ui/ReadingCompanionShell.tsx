@@ -27,9 +27,13 @@ export function ReadingCompanionShell({ canvasRef, sceneError, diagnostics, buil
         <p>朝向 {diagnostics ? `${diagnostics.heading} · yaw ${diagnostics.yaw.toFixed(2)}` : '加载中'}</p>
         <p>输入 {diagnostics?.keys ?? '加载中'}</p>
         <p>视角 {diagnostics?.pointerLocked ? '已进入视角' : '未锁定'}</p>
-        <p>场景 {sceneError ? '失败（见页面提示）' : diagnostics ? '运行中' : '加载中'}</p>
+        <p>场景 {sceneError ? `失败：${sceneError}` : diagnostics ? '运行中' : '加载中'}</p>
+        <p>位置状态 {diagnostics ? `${diagnostics.camp} · 距营地 ${diagnostics.distanceFromCamp.toFixed(1)} m` : '加载中'}</p>
+        <p>参照 {diagnostics?.references ?? '加载中'}</p>
+        {diagnostics?.sceneStatus.startsWith('失败：') ? <p>渲染 {diagnostics.sceneStatus}</p> : null}
       </aside>
-      <p className="interaction-hint">点击画面进入视角 · WASD/方向键移动 · Esc 退出鼠标锁定</p>
+      <span className="reticle" aria-hidden="true">+</span>
+      <p className="interaction-hint">点击画面进入视角 · WASD/方向键移动 · R 返回诊断营地 · Esc 退出鼠标锁定</p>
     </main>
   );
 }

@@ -17,12 +17,12 @@
 - **本地开发入口：** Docker Desktop、明确版本的 Node 24.18.0 镜像、npm `package-lock.json` 和镜像内依赖层；开发进程以非 root 用户运行。
 - **开发挂载边界：** Compose 将宿主源码只读挂载到容器 `/app/source`；Dockerfile 的依赖层依据锁文件执行 `npm ci` 并保留 `/app/node_modules`，不再使用初始化服务或共享依赖卷，避免只读源码挂载下的嵌套挂载点与卷竞争。
 - **Vite 开发缓存：** `cacheDir` 由 `VITE_CACHE_DIR` 配置；Compose 指向容器内可写的 `/app/.vite-cache`，宿主机默认使用被忽略的项目 `.vite-cache`，避免在只读源码树或宿主机 `node_modules` 下生成优化缓存。
-- **开发版本与缓存可见性：** Vite 在转换时将 `VITE_BUILD_ID` 注入页面 meta 与静态技术诊断 HUD；Compose 默认值为 `dev-2.7-visibility`，可由宿主 `LINCOLN_BUILD_ID` 覆盖。开发服务器对 HTML 与模块响应 `Cache-Control: no-store`，用于排查本地陈旧页面，不规定未来 production 托管的缓存策略。
+- **开发版本与缓存可见性：** Vite 在转换时将 `VITE_BUILD_ID` 注入页面 meta 与静态技术诊断 HUD；Compose 默认值为 `dev-2.8-visible-camp`，可由宿主 `LINCOLN_BUILD_ID` 覆盖。开发服务器对 HTML 与模块响应 `Cache-Control: no-store`，用于排查本地陈旧页面，不规定未来 production 托管的缓存策略。
 - **构建输出边界：** `build.outDir` 由 `VITE_OUT_DIR` 配置；Compose 验证写入容器 `/tmp/lincoln-island-dist`，镜像 production 阶段和宿主机默认仍为 `dist`，避免只读源码挂载下回写产物。
 - **TypeScript 增量缓存：** `tsc -b` 的 `.tsbuildinfo` 固定写入系统临时目录，避免只读源码挂载下回写 `node_modules/.tmp`；这不改变源码或依赖边界。
 - **开发健康边界：** Compose 健康检查运行 `scripts/dev-server-smoke.mjs`，验证根 HTML 的 build id/no-store、静态诊断 HUD、入口/应用/界面模块和入口中发现的至少一个预构建依赖；仅根 HTML 返回 200 不视为开发服务可用。
 - **当前灰盒实现：** `src/domain/terrain.ts` 以固定种子生成非矩形岛形、海岸和高地；Babylon.js 只负责将网格、海面、灯光和第一人称相机装配到场景。
-- **灰盒诊断参照：** `src/domain/diagnostics.ts` 版本化定义三枚彩色形状标记和分段路径，`src/scene/createIslandScene.ts` 负责网格装配；场景以约 10Hz 的最小状态回调向 React 提供位置、原型方位、按键和 Pointer Lock 状态，页面角落的“技术诊断”HUD 不代表正式产品内容。
+- **灰盒诊断营地：** `src/domain/diagnostics.ts` 版本化定义平整平台、相对营地原点的三枚高对比标记与分段路径，并以纯几何视锥函数验证初始视图的可见候选；`src/scene/createIslandScene.ts` 负责网格装配、平面无光照诊断材质、R 键重置与 mesh active/ready 状态。场景以约 10Hz 的最小状态回调向 React 提供位置、原型方位、按键、Pointer Lock 和营地/参照候选状态，页面角落的“技术诊断”HUD 不代表正式产品内容。
 - **原型空间约定：** 假设 1 world unit ≈ 1 m；当前岛屿尺寸与形状是为体验压缩的原型假设，不是小说地理事实。
 - **首屏边界：** React 首屏只加载 UI；Babylon 场景通过动态 import 懒加载，入口与场景 chunk 分开，避免把完整 Babylon 模块放入 UI 首屏。
 

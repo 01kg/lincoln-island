@@ -26,10 +26,16 @@ try {
   const appModule = await fetchText('/src/App.tsx', '应用模块');
   const shellModule = await fetchText('/src/ui/ReadingCompanionShell.tsx', '阅读界面模块');
   const buildInfoModule = await fetchText('/src/buildInfo.ts', '构建标识模块');
+  const diagnosticsModule = await fetchText('/src/domain/diagnostics.ts', '诊断营地数据模块');
+  const sceneModule = await fetchText('/src/scene/createIslandScene.ts', '场景装配模块');
   requireText(appModule, 'buildId', '应用模块的 build id 传递');
   requireText(shellModule, '技术诊断 · 灰盒参照', '阅读界面的静态 HUD');
   requireText(shellModule, '"data-testid": "build-id"', '阅读界面的 build id 标记');
+  requireText(shellModule, 'R 返回诊断营地', '阅读界面的营地恢复提示');
   requireText(buildInfoModule, '__LINCOLN_BUILD_ID__', '构建标识模块的 Vite 注入标记');
+  requireText(diagnosticsModule, 'diagnosticCamp', '诊断营地的版本化数据');
+  requireText(diagnosticsModule, 'getInitialVisibilityCandidate', '初始视锥候选验证');
+  requireText(sceneModule, 'createDiagnosticCamp', '诊断营地场景装配');
   const dependencyReferences = [
     ...mainModule.matchAll(/['"]((?:\/@fs\/[^'"]+|\/node_modules\/\.vite\/deps\/)[^'"]+\.js(?:\?[^'"]*)?)['"]/g),
   ].map((match) => match[1]);
