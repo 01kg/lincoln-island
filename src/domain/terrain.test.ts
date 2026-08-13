@@ -4,8 +4,10 @@ import {
   createTerrainMeshData,
   getSafeSpawnPosition,
   islandTerrainConfig,
+  isPlayerPositionSafe,
   isLandAt,
   keepPositionOnLand,
+  resolvePlayerBoundaryPosition,
   sampleTerrainHeight,
 } from './terrain';
 
@@ -42,5 +44,16 @@ describe('玩家位置边界', () => {
     const resolved = keepPositionOnLand(current, nearby);
     expect(resolved[0]).toBe(nearby[0]);
     expect(resolved[1]).toBeCloseTo(sampleTerrainHeight(resolved[0], resolved[2]) + islandTerrainConfig.eyeHeight);
+  });
+
+  it('只在明显脱离水平或垂直安全范围时恢复上一个安全位置', () => {
+    const safe = getSafeSpawnPosition();
+    const nearby = [safe[0] + 1, safe[1], safe[2]] as const;
+    expect(isPlayerPositionSafe(nearby)).toBe(true);
+    expect(resolvePlayerBoundaryPosition(nearby, safe)).toEqual(nearby);
+
+    const fallen = [safe[0], -1, safe[2]] as const;
+    expect(isPlayerPositionSafe(fallen)).toBe(false);
+    expect(resolvePlayerBoundaryPosition(fallen, safe)).toEqual(safe);
   });
 });

@@ -15,6 +15,9 @@ export interface TerrainConfig {
   readonly maxStepHeight: number;
   readonly eyeHeight: number;
   readonly cameraRadius: number;
+  /** Recovery guard only; Babylon remains responsible for ordinary gravity. */
+  readonly maxCameraTerrainGap: number;
+  readonly minCameraHeight: number;
 }
 
 export interface TerrainVertex {
@@ -47,6 +50,8 @@ export const islandTerrainConfig: TerrainConfig = {
   maxStepHeight: 0.8,
   eyeHeight: 1.7,
   cameraRadius: 0.35,
+  maxCameraTerrainGap: 2.5,
+  minCameraHeight: 0.5,
 };
 
 function wave(value: number, seed: number): number {
@@ -144,4 +149,28 @@ export function keepPositionOnLand(
     return current;
   }
   return [desired[0], sampleTerrainHeight(desired[0], desired[2], config) + config.eyeHeight, desired[2]];
+}
+
+export function isPlayerPositionSafe(
+  position: Position3,
+  config: TerrainConfig = islandTerrainConfig,
+): boolean {
+  if (!isLandAt(position[0], position[2], config) || position[1] < config.minCameraHeight) {
+    return false;
+  }
+  const expectedEyeHeight = sampleTerrainHeight(position[0], position[2], config) + config.eyeHeight;
+  return Math.abs(position[1] - expectedEyeHeight) <= config.maxCameraTerrainGap;
+}
+
+/**
+ * Babylon handles normal camera movement, gravity and mesh collisions. This
+ * pure boundary rule only restores the last known safe position after a
+ * camera clearly leaves the playable land/height envelope.
+ */
+export function resolvePlayerBoundaryPosition(
+  position: Position3,
+  lastSafePosition: Position3,
+  config: TerrainConfig = islandTerrainConfig,
+): Position3 {
+  return isPlayerPositionSafe(position, config) ? position : lastSafePosition;
 }

@@ -8,11 +8,10 @@ import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Scene } from '@babylonjs/core/scene';
 import {
-  canOccupyPosition,
   createTerrainMeshData,
   getSafeSpawnPosition,
   islandTerrainConfig,
-  keepPositionOnLand,
+  resolvePlayerBoundaryPosition,
   type Position3,
 } from '../domain/terrain';
 
@@ -83,9 +82,12 @@ export function createIslandScene(canvas: HTMLCanvasElement): BabylonSceneHandle
   camera.applyGravity = true;
   camera.ellipsoid = new Vector3(
     islandTerrainConfig.cameraRadius,
-    islandTerrainConfig.eyeHeight,
+    0.9,
     islandTerrainConfig.cameraRadius,
   );
+  // Camera position is the eye; offset the collision ellipsoid down to put its
+  // body center below the eye while Babylon applies ordinary gravity/collisions.
+  camera.ellipsoidOffset = new Vector3(0, -0.8, 0);
   camera.minZ = 0.1;
 
   const light = new HemisphericLight('island-sun', new Vector3(0.2, 1, 0.15), scene);
@@ -95,15 +97,15 @@ export function createIslandScene(canvas: HTMLCanvasElement): BabylonSceneHandle
   createTerrainMesh(scene);
   createHighlandMarker(scene);
 
-  let safePosition: Position3 = spawn;
+  let lastSafePosition: Position3 = spawn;
   const keepCameraSafe = () => {
-    const desired: Position3 = [camera.position.x, safePosition[1], camera.position.z];
-    if (canOccupyPosition(safePosition, desired)) {
-      safePosition = keepPositionOnLand(safePosition, desired);
-      camera.position = new Vector3(...safePosition);
-    } else {
-      camera.position = new Vector3(...safePosition);
+    const current: Position3 = [camera.position.x, camera.position.y, camera.position.z];
+    const resolved = resolvePlayerBoundaryPosition(current, lastSafePosition);
+    if (resolved !== current) {
+      camera.position = new Vector3(...resolved);
+      return;
     }
+    lastSafePosition = current;
   };
   scene.onBeforeRenderObservable.add(keepCameraSafe);
 
