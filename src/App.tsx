@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { buildId } from './buildInfo';
 import { ReadingCompanionShell } from './ui/ReadingCompanionShell';
 import type { SceneDiagnostics } from './scene/createIslandScene';
 import './styles.css';
@@ -40,5 +41,5 @@ export function App() {
     };
   }, []);
 
-  return <ReadingCompanionShell canvasRef={canvasRef} sceneError={sceneError} diagnostics={diagnostics} />;
+  return <ReadingCompanionShell canvasRef={canvasRef} sceneError={sceneError} diagnostics={diagnostics} buildId={buildId} />;
 }
