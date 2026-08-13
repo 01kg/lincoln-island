@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { ReadingCompanionShell } from './ui/ReadingCompanionShell';
+import type { SceneDiagnostics } from './scene/createIslandScene';
 import './styles.css';
 
 export function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [sceneError, setSceneError] = useState<string | null>(null);
+  const [diagnostics, setDiagnostics] = useState<SceneDiagnostics | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -18,7 +20,7 @@ export function App() {
     void import('./scene/createIslandScene')
       .then(({ createIslandScene }) => {
         if (!active) return;
-        const sceneHandle = createIslandScene(canvas);
+        const sceneHandle = createIslandScene(canvas, setDiagnostics);
         sceneHandle.engine.runRenderLoop(() => sceneHandle.scene.render());
         const resize = () => sceneHandle.engine.resize();
         window.addEventListener('resize', resize);
@@ -38,5 +40,5 @@ export function App() {
     };
   }, []);
 
-  return <ReadingCompanionShell canvasRef={canvasRef} sceneError={sceneError} />;
+  return <ReadingCompanionShell canvasRef={canvasRef} sceneError={sceneError} diagnostics={diagnostics} />;
 }

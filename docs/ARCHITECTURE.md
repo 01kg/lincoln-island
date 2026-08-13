@@ -21,6 +21,7 @@
 - **TypeScript 增量缓存：** `tsc -b` 的 `.tsbuildinfo` 固定写入系统临时目录，避免只读源码挂载下回写 `node_modules/.tmp`；这不改变源码或依赖边界。
 - **开发健康边界：** Compose 健康检查运行 `scripts/dev-server-smoke.mjs`，依次请求根 HTML、`/src/main.tsx` 和入口中发现的至少一个 `/node_modules/.vite/deps/` 预构建依赖；仅根 HTML 返回 200 不视为开发服务可用。
 - **当前灰盒实现：** `src/domain/terrain.ts` 以固定种子生成非矩形岛形、海岸和高地；Babylon.js 只负责将网格、海面、灯光和第一人称相机装配到场景。
+- **灰盒诊断参照：** `src/domain/diagnostics.ts` 版本化定义三枚彩色形状标记和分段路径，`src/scene/createIslandScene.ts` 负责网格装配；场景以约 10Hz 的最小状态回调向 React 提供位置、原型方位、按键和 Pointer Lock 状态，页面角落的“技术诊断”HUD 不代表正式产品内容。
 - **原型空间约定：** 假设 1 world unit ≈ 1 m；当前岛屿尺寸与形状是为体验压缩的原型假设，不是小说地理事实。
 - **首屏边界：** React 首屏只加载 UI；Babylon 场景通过动态 import 懒加载，入口与场景 chunk 分开，避免把完整 Babylon 模块放入 UI 首屏。
 

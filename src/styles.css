@@ -74,6 +74,31 @@ body {
   line-height: 1.45;
 }
 
+.diagnostic-hud {
+  position: absolute;
+  right: 1.25rem;
+  top: 1.25rem;
+  min-width: 13rem;
+  padding: 0.7rem 0.85rem;
+  color: #e6edf4;
+  background: rgba(8, 18, 28, 0.78);
+  border: 1px solid rgba(188, 212, 229, 0.45);
+  border-radius: 0.4rem;
+  font: 0.72rem/1.45 ui-monospace, SFMono-Regular, Consolas, monospace;
+  pointer-events: none;
+}
+
+.diagnostic-hud p {
+  margin: 0.16rem 0;
+}
+
+.diagnostic-hud .diagnostic-title {
+  margin-bottom: 0.35rem;
+  color: #f0b35a;
+  font-family: inherit;
+  font-weight: 700;
+}
+
 .eyebrow {
   color: #f0b35a;
   font-size: 0.72rem;
