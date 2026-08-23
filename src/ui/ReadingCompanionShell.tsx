@@ -30,11 +30,16 @@ export function ReadingCompanionShell({ canvasRef, sceneError, diagnostics, buil
         <p>视角 {diagnostics?.pointerLocked ? '已进入视角' : '未锁定'}</p>
         <p>营地 {sceneError ? `失败：${sceneError}` : diagnostics ? `${diagnostics.camp} · 距营地 ${diagnostics.distanceFromCamp.toFixed(1)}m` : '加载中...'}</p>
         <p>恢复 {diagnostics?.recovery ?? '加载中...'}</p>
+        <p>动作 {diagnostics?.motion ?? '加载中...'}</p>
+        <p>道具 {diagnostics ? (diagnostics.hasGun ? '已获得枪' : '未获得枪') : '加载中...'}</p>
+        <p>武器 {diagnostics ? (diagnostics.hasGun ? `已装备 · 开火 ${diagnostics.shotsFired} 次` : '未装备') : '加载中...'}</p>
+        <p>弹药 {diagnostics ? `${diagnostics.ammoInMagazine} / ${diagnostics.reserveAmmo}` : '加载中...'}</p>
+        <p>生命 {diagnostics ? `${diagnostics.playerHealth} · 敌人剩余 ${diagnostics.enemiesRemaining}` : '加载中...'}</p>
         <p>渲染 {diagnostics?.references ?? '加载中...'}</p>
         {diagnostics?.sceneStatus?.startsWith('失败：') ? <p>场景 {diagnostics.sceneStatus}</p> : null}
       </aside>
       <span className="reticle" aria-hidden="true">+</span>
-      <p className="interaction-hint">点击画面进入视角 · WASD/方向键移动 · R 返回诊断营地 · Esc 退出鼠标锁定</p>
+      <p className="interaction-hint">点击画面进入视角 · WASD/方向键移动 · 空格跳跃 · 靠近山顶枪支可拾取 · 左键开火 · 抬头左键换弹 · R 返回诊断营地 · Esc 退出鼠标锁定</p>
     </main>
   );
 }

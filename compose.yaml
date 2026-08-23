@@ -16,7 +16,7 @@ services:
       VITE_CACHE_DIR: /app/.vite-cache
       VITE_OUT_DIR: /tmp/lincoln-island-dist
       # Override LINCOLN_BUILD_ID before `docker compose up` when comparing builds.
-      VITE_BUILD_ID: ${LINCOLN_BUILD_ID:-dev-2.9-movement}
+      VITE_BUILD_ID: ${LINCOLN_BUILD_ID:-0.9.18}
     volumes:
       - .:/app/source:ro
     command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

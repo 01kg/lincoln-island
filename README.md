@@ -6,7 +6,9 @@
 
 ## 当前状态
 
-第一个 Web 技术纵切现在包含一块确定性生成的低多边形占位岛屿和基础第一人称步行。当前只验证灰盒空间、玩家边界和模块边界，尚未实现完整林肯岛、2D 地图或章节切换。
+目前可以进入一个明亮的 3D 灰盒营地，用鼠标观察、使用键盘行走，并在岛屿边缘触发安全返回。白门、红柱、黄标和分段路径都是用于验证方向感的临时参照物，并非正式林肯岛美术。
+
+当前版本仍是技术纵切，尚未实现完整林肯岛、2D 地图或章节切换。
 
 最新状态与明确的下一步见 [`docs/NOW.md`](docs/NOW.md)。
 
@@ -28,35 +30,128 @@
 - 世界尽量由代码和版本化数据重建。
 - AI 生成模型是美术生产工具，不是产品成立的前提。
 
-## 开发（Docker 优先）
+## 启动游戏
 
-前提：安装并启动 Docker Desktop。默认不要求宿主机安装 Node/npm；依赖安装、测试和构建都在 Node 24.18.0 容器内完成，依赖锁定在 `package-lock.json` 中。Dockerfile 的依赖层执行 `npm ci`，`node_modules` 保留在镜像层；Compose 只读挂载源码到容器 `/app/source`，因此不会在宿主项目目录创建依赖目录。
+### 1. 准备 Docker Desktop
+
+安装并启动 [Docker Desktop](https://www.docker.com/products/docker-desktop/)，等待界面显示 Docker Engine 正在运行。
+
+不需要在电脑上另外安装 Node.js 或 npm。
+
+### 2. 启动本地游戏
+
+在仓库根目录打开 PowerShell，运行：
 
 ```powershell
-# 启动开发服务器（http://localhost:5173）
+docker compose up --build -d
+```
+
+首次启动需要下载基础镜像和前端依赖，可能需要几分钟。后续启动通常会更快。
+
+查看服务是否已经准备好：
+
+```powershell
+docker compose ps
+```
+
+当 `web` 服务显示 `healthy`，即可进入游戏。
+
+### 3. 用普通浏览器打开
+
+访问：
+
+[http://localhost:5173](http://localhost:5173)
+
+建议使用普通的 Chrome、Edge 或 Firefox。Codex 内置浏览器目前不能可靠完成鼠标锁定交互，不适合人工漫游验收。
+
+日常修改 `src/` 下的代码会通过 Vite 热更新自动呈现；不需要改 URL、重启 Docker 或强制刷新。只有改动 `compose.yaml`、`Dockerfile` 或开发环境变量时，才运行 `docker compose up --build -d`。若怀疑浏览器仍是旧页面，可按 `Ctrl + F5` 并确认右上角版本为 `0.9.18`（或你设置的 `LINCOLN_BUILD_ID`）。
+
+## 操作方法
+
+| 操作 | 按键 |
+|---|---|
+| 进入鼠标视角 | 点击 3D 画面 |
+| 前后左右行走 | `W` `A` `S` `D` 或方向键 |
+| 转动视角 | 移动鼠标 |
+| 跳跃 | `空格键` |
+| 返回诊断营地 | `R` |
+| 释放鼠标 | `Esc` |
+
+初始画面应能看到白门、左侧红柱、右侧黄标、分段路径、浅色平台及海陆边界。右上角“技术诊断”面板会显示位置、朝向、输入状态和当前版本。
+
+## 停止游戏
+
+在仓库根目录运行：
+
+```powershell
+docker compose down --volumes --remove-orphans
+```
+
+该命令会停止并清理本项目的开发容器和临时资源，不会删除源代码。
+
+## 常见问题
+
+### 页面打不开
+
+确认 Docker Desktop 正在运行，然后检查：
+
+```powershell
+docker compose ps
+docker compose logs --tail 100 web
+```
+
+如果服务没有启动，可先清理再重建：
+
+```powershell
+docker compose down --volumes --remove-orphans
+docker compose up --build -d
+```
+
+### 页面空白或仍是旧版本
+
+先确认右上角版本是否为 `0.9.18`。开发服务器已设置为不缓存 HTML 和开发模块；若问题仍在，请保存浏览器截图，并附上：
+
+```powershell
+docker compose ps
+docker compose logs --tail 100 web
+```
+
+### 鼠标或键盘不能控制
+
+- 使用普通 Chrome、Edge 或 Firefox，不要用 Codex 内置浏览器验收鼠标锁定。
+- 先点击 3D 画面，再使用鼠标和 WASD。
+- 查看右上角诊断面板是否显示按键和“已进入视角”。
+- 按 `Esc` 释放鼠标后，可以重新点击画面进入。
+
+## 开发者命令
+
+项目采用 Docker 优先的开发方式。依赖、测试和构建都在 Node 24.18.0 容器中完成，宿主机不会生成 `node_modules`。
+
+```powershell
+# 启动或重建开发服务
 docker compose up --build -d
 
-# 为一次人工复验指定可见的开发版本标识（可选）
-$env:LINCOLN_BUILD_ID = 'dev-2.9-movement'
+# 指定可见的开发版本标识
+$env:LINCOLN_BUILD_ID = '0.9.18'
 docker compose up --build -d
 
-# 查看服务日志（需要时）
+# 持续查看日志
 docker compose logs -f web
 
-# 在一次性容器中运行测试
+# 运行测试
 docker compose run --rm web npm test
 
 # 检查根 HTML 的 build id、静态诊断 HUD、入口模块和 Vite 预构建依赖
 docker compose exec web npm run smoke:dev -- http://127.0.0.1:5173
 
-# 审计依赖
+# 安全审计
 docker compose run --rm web npm audit
 
 # 构建 production 静态文件
 docker build --target build --tag lincoln-island:build .
 
-# 停止开发服务；删除容器和命名卷
+# 停止并清理
 docker compose down --volumes --remove-orphans
 ```
 
-开发服务运行在非 root 用户下，并启用 init 与模块级健康检查。依赖安装只在镜像依赖层执行，避免初始化服务与 Web 服务竞争同一命名卷；Web 服务从只读源码挂载运行，宿主机编辑仍可触发热更新。Vite 优化缓存位于容器可写的 `/app/.vite-cache`，production 输出在 Compose 中位于 `/tmp/lincoln-island-dist`，不会写入只读源码树或宿主机；宿主机直接运行时默认分别使用项目内被忽略的 `.vite-cache` 和 `dist`。开发 HTML 与模块会返回 `Cache-Control: no-store`，右上角“技术诊断”会显示由 Vite 注入的版本标识；默认 Compose 值为 `dev-2.9-movement`。人工复验请打开 `http://localhost:5173/?v=dev-2.9-movement` 并报告该版本行；初始画面应出现白门、分列两侧的红柱和黄标，以及白色路径。点击画布取得鼠标视角，使用 WASD 或方向键行走，按 R 返回营地并重新对准白门，按 Esc 释放鼠标。当前技术基线见 [ADR 0004](docs/decisions/0004-web-first-technical-baseline.md)，Docker 边界见 [ADR 0005](docs/decisions/0005-docker-first-local-development.md)。 
+开发服务以非 root 用户运行，并启用 init、模块级健康检查和源码热更新。源码以只读方式挂载至容器；Vite 缓存和构建输出保留在容器可写目录，不污染宿主机。技术基线见 [ADR 0004](docs/decisions/0004-web-first-technical-baseline.md)，Docker 边界见 [ADR 0005](docs/decisions/0005-docker-first-local-development.md)。

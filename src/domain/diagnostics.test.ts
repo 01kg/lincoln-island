@@ -51,10 +51,10 @@ describe('漫游诊断营地数据', () => {
   it('复位位姿由版本化营地定义，避免魔法数', () => {
     const pose = getDiagnosticResetPose();
     expect(pose.spawn[0]).toBe(diagnosticCamp.origin[0] + diagnosticCamp.spawnOffset[0]);
-    expect(pose.spawn[1]).toBe(diagnosticCamp.origin[1] + diagnosticCamp.platformHeight / 2 + diagnosticCamp.eyeHeight);
+    expect(pose.spawn[1]).toBe(diagnosticCamp.origin[1] + diagnosticCamp.platformHeight / 2 + diagnosticCamp.collisionEyeHeight);
     expect(pose.spawn[2]).toBe(diagnosticCamp.origin[2] + diagnosticCamp.spawnOffset[1]);
-    expect(pose.target[0]).toBe(diagnosticCamp.origin[0] + diagnosticCamp.forward[0]);
-    expect(pose.target[1]).toBe(diagnosticCamp.origin[1] + diagnosticCamp.gateTargetHeight);
-    expect(pose.target[2]).toBe(diagnosticCamp.origin[2] + diagnosticCamp.forward[1]);
+    expect(pose.target[0]).toBe(diagnosticCamp.origin[0] + diagnosticCamp.spawnOffset[0] + diagnosticCamp.forward[0]);
+    expect(pose.target[1]).toBe(diagnosticCamp.origin[1] + diagnosticCamp.platformHeight / 2 + diagnosticCamp.collisionEyeHeight);
+    expect(pose.target[2]).toBe(diagnosticCamp.origin[2] + diagnosticCamp.spawnOffset[1] + diagnosticCamp.forward[1]);
   });
 });

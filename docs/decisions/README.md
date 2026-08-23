@@ -18,6 +18,11 @@ ADR（Architecture Decision Record）保存影响后续工作的决定及其原�
 | [0003](0003-chapter-world-snapshot.md) | 接受 | 章节解析为同一座岛的全局时间切片 |
 | [0004](0004-web-first-technical-baseline.md) | 接受 | Web 优先，以 Babylon.js 技术纵切验证实现基线 |
 | [0005](0005-docker-first-local-development.md) | 接受 | 本地开发、测试与构建采用 Docker 优先入口 |
+| [0006](0006-noncombat-pickup-prototype.md) | 接受 | 先实现非战斗枪支拾取原型，不隐式扩展为战斗系统 |
+| [0007](0007-graybox-fire-action.md) | 接受 | 允许已拾取枪支进行受限灰盒开火反馈，不加入完整战斗系统 |
+| [0008](0008-limited-graybox-combat.md) | 接受 | 加入固定位置敌人、生命值和受限伤害闭环，不加入复杂 AI |
+| [0009](0009-graybox-ammo-reload.md) | 接受 | 加入 12 发弹匣、48 发备用子弹和抬头换弹规则 |
+| [0010](0010-simple-enemy-wander.md) | 接受 | 传送到山顶后激活营地敌人的简单游走，不加入复杂追踪 AI |
 
 ## 何时新增 ADR
 

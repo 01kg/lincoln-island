@@ -23,6 +23,8 @@ export interface DiagnosticCampDefinition {
   readonly platformDepth: number;
   readonly platformHeight: number;
   readonly eyeHeight: number;
+  /** Camera height that already matches Babylon's collision ellipsoid on the camp platform. */
+  readonly collisionEyeHeight: number;
   readonly fieldOfViewRadians: number;
   readonly aspectRatio: number;
   /** Looking along negative z puts all references directly ahead. */
@@ -39,6 +41,10 @@ export const diagnosticCamp: DiagnosticCampDefinition = {
   platformDepth: 18,
   platformHeight: 0.5,
   eyeHeight: 1.7,
+  // Babylon's collision ellipsoid settles at y=8.4 on this platform.
+  // Spawn at that supported height so the first input does not visibly raise
+  // the camera from 7.8 to 8.4.
+  collisionEyeHeight: 2.65,
   fieldOfViewRadians: Math.PI / 2.4,
   aspectRatio: 16 / 9,
   forward: [0, -1],
@@ -47,7 +53,7 @@ export const diagnosticCamp: DiagnosticCampDefinition = {
 };
 
 export const diagnosticMarkers: readonly DiagnosticMarkerDefinition[] = [
-  { id: 'white-gate', label: '前 · 白门', offset: [0, -8], height: 4.8, color: [1, 1, 0.92], shape: 'gate' },
+  { id: 'white-gate', label: '前 · 山顶传送门', offset: [0, -8], height: 4.8, color: [1, 1, 0.92], shape: 'gate' },
   { id: 'red-column', label: '左 · 红柱', offset: [-4.5, -7], height: 5.4, color: [1, 0.08, 0.04], shape: 'column' },
   { id: 'yellow-beacon', label: '右 · 黄标', offset: [4.5, -7], height: 5.8, color: [1, 0.82, 0.03], shape: 'beacon' },
 ];
@@ -58,13 +64,13 @@ export const diagnosticPathDistances: readonly number[] = [1.8, 3.1, 4.5, 5.9, 7
 export function getDiagnosticResetPose(camp: DiagnosticCampDefinition = diagnosticCamp): DiagnosticResetPose {
   const spawn: DiagnosticPosition = [
     camp.origin[0] + camp.spawnOffset[0],
-    camp.origin[1] + camp.platformHeight / 2 + camp.eyeHeight,
+    camp.origin[1] + camp.platformHeight / 2 + camp.collisionEyeHeight,
     camp.origin[2] + camp.spawnOffset[1],
   ];
   const target: DiagnosticPosition = [
-    camp.origin[0] + camp.forward[0],
-    camp.origin[1] + camp.gateTargetHeight,
-    camp.origin[2] + camp.forward[1],
+    camp.origin[0] + camp.spawnOffset[0] + camp.forward[0],
+    camp.origin[1] + camp.platformHeight / 2 + camp.collisionEyeHeight,
+    camp.origin[2] + camp.spawnOffset[1] + camp.forward[1],
   ];
 
   return { spawn, target };

@@ -31,6 +31,10 @@ export default defineConfig({
     headers: {
       'Cache-Control': 'no-store, max-age=0',
     },
+    watch: {
+      usePolling: true,
+      interval: 300,
+    },
   },
   build: {
     outDir: runtimeProcess?.env?.VITE_OUT_DIR ?? 'dist',

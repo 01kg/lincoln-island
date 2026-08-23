@@ -47,6 +47,10 @@ export interface PlayerMovementConfig {
   readonly movementSettleMs: number;
   readonly recoveryCooldownMs: number;
   readonly movementLockMs: number;
+  readonly jumpImpulse: number;
+  readonly jumpCooldownMs: number;
+  readonly jumpDurationMs: number;
+  readonly offshoreSinkSpeed: number;
 }
 
 export interface PlayerRecoveryDecision {
@@ -83,6 +87,11 @@ export const playerMovementConfig: PlayerMovementConfig = {
   movementSettleMs: 220,
   recoveryCooldownMs: 420,
   movementLockMs: 220,
+  jumpImpulse: 2.4,
+  jumpCooldownMs: 380,
+  jumpDurationMs: 520,
+  // Clearly visible continuous sinking; recovery happens within a few seconds.
+  offshoreSinkSpeed: 2.4,
 };
 
 function wave(value: number, seed: number): number {
@@ -107,8 +116,10 @@ export function sampleTerrainHeight(x: number, z: number, config: TerrainConfig 
 
   const landMass = Math.max(0, 1 - radius);
   const rollingHeight = 0.35 + 3.6 * landMass ** 0.68 + wave(x + z, config.seed) * 0.28;
-  const mountain = 5.2 * Math.exp(-(((x + 7) ** 2) / 48 + ((z + 3) ** 2) / 38));
-  return Math.max(config.seaLevel + 0.05, rollingHeight + mountain);
+  // Keep the island landform gently rolling. The nearby dramatic summit is a
+  // separate, intentional gray-box landmark in the scene rather than a broad
+  // green terrain bulge that reads as a paper-thin mountain.
+  return Math.max(config.seaLevel + 0.05, rollingHeight);
 }
 
 export function createTerrainMeshData(config: TerrainConfig = islandTerrainConfig): TerrainMeshData {
@@ -129,13 +140,29 @@ export function createTerrainMeshData(config: TerrainConfig = islandTerrainConfi
     for (let column = 0; column < config.gridSize - 1; column += 1) {
       const x = column * config.cellSize - halfExtent + config.cellSize / 2;
       const z = row * config.cellSize - halfExtent + config.cellSize / 2;
-      if (!isLandAt(x, z, config)) {
-        continue;
-      }
       const topLeft = indexAt(row, column);
       const topRight = indexAt(row, column + 1);
       const bottomLeft = indexAt(row + 1, column);
       const bottomRight = indexAt(row + 1, column + 1);
+      // A cell whose centre is on land can still have one or more corners in
+      // the sea. Drawing it produced green triangular sheets under the water.
+      // Keep only wholly terrestrial cells; the scene builds a cliff skirt
+      // around the resulting coastline.
+      const corners = [
+        vertices[topLeft],
+        vertices[topRight],
+        vertices[bottomLeft],
+        vertices[bottomRight],
+      ];
+      if (
+        !isLandAt(x, z, config)
+        || !corners.every((corner) => isLandAt(corner.x, corner.z, config))
+        // Remove the nearly submerged fringe entirely. Those very shallow
+        // top faces can otherwise be seen edge-on as floating green sheets.
+        || !corners.every((corner) => corner.y > config.seaLevel + 0.35)
+      ) {
+        continue;
+      }
       indices.push(topLeft, bottomLeft, topRight, topRight, bottomLeft, bottomRight);
     }
   }
